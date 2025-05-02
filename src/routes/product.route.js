@@ -4,7 +4,7 @@ const verifyToken = require('../middleware/auth.middleware');
 const authorizeRoles = require('../middleware/role.middleware');
 const router = express.Router();
 
-router.get('/', verifyToken,authorizeRoles("superadmin"),getAllProducts)
+// router.get('/', verifyToken,authorizeRoles("superadmin"),getAllProducts)
 router.post('/',createProduct)
 router.get('/:id',getProductById)
 router.put('/:id',updateProduct)
