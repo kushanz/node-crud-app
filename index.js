@@ -8,6 +8,7 @@ app.use(express.urlencoded({ extended: false })); // for parsing application/x-w
 
 const productRoute = require('./src/routes/product.route.js')
 const authRoute = require('./src/routes/auth.route.js')
+const userRoute = require('./src/routes/user.route.js')
 
 app.get('/', (req, res) => {
   res.send('Hello World! port 3000');
@@ -16,6 +17,7 @@ app.get('/', (req, res) => {
 // api collecton
 app.use('/api/auth', authRoute)
 app.use('/api/products', productRoute)
+app.use('/api/users', userRoute)
 // api collection end
 
 mongoose.connect('mongodb+srv://admin:iVYiVRUCKKksRm6A@kushandb.vwqpm.mongodb.net/Node-API?retryWrites=true&w=majority&appName=KushanDb')
