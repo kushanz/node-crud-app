@@ -4,8 +4,19 @@ const User = require('../models/user.model');
 
 const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select('-password -_id'); // Exclude password field
-    res.status(200).json(users);
+    const users = await User.find().select('-password -__v'); // Exclude password field
+
+    const u = users.map(user => {
+      return {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      };
+    });
+
+    res.status(200).json(u);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
