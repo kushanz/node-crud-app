@@ -3,8 +3,50 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv').config();
 const cors = require('cors');
 const app = express();
+
+// CORS configuration
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    // In development, allow all localhost origins
+    if (process.env.NODE_ENV !== 'production') {
+      const allowedOrigins = [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:5173', // Vite default
+        'http://localhost:8080',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:5173',
+        'http://127.0.0.1:8080'
+      ];
+      
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        return callback(null, true);
+      }
+    }
+    
+    // In production, only allow specific domains
+    const productionOrigins = process.env.ALLOWED_ORIGINS 
+      ? process.env.ALLOWED_ORIGINS.split(',')
+      : [];
+    
+    if (productionOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log(`CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // Allow cookies and authorization headers
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  optionsSuccessStatus: 200 // For legacy browser support
+};
+
 app.use(express.json());
-app.use(cors()); // Enable CORS for all routes
+app.use(cors(corsOptions)); // Enable CORS with custom options
 const PORT = process.env.PORT || 3000;
 app.use(express.urlencoded({ extended: false })); // for parsing application/x-www-form-urlencoded
 
