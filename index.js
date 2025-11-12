@@ -1,5 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const cookieParser = require('cookie-parser'); // Add this line
 const dotenv = require('dotenv').config();
 const cors = require('cors');
 const app = express();
@@ -46,6 +47,7 @@ const corsOptions = {
 };
 
 app.use(express.json());
+app.use(cookieParser());
 app.use(cors(corsOptions)); // Enable CORS with custom options
 const PORT = process.env.PORT || 3000;
 app.use(express.urlencoded({ extended: false })); // for parsing application/x-www-form-urlencoded
