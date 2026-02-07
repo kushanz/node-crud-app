@@ -6,8 +6,8 @@ const cors = require('cors');
 const app = express();
 
 // CORS configuration
-const corsOptions = {
-  origin: 'http://localhost:3001',
+// const corsOptions = {
+//   origin: 'http://localhost:3001',
   // origin: function (origin, callback) {
   //   // Allow requests with no origin (like mobile apps, Postman, etc.)
   //   if (!origin) return callback(null, true);
@@ -41,10 +41,20 @@ const corsOptions = {
   //     callback(new Error('Not allowed by CORS'));
   //   }
   // },
-  credentials: true, // Allow cookies and authorization headers
+//   credentials: true, // Allow cookies and authorization headers
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+//   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+//   optionsSuccessStatus: 200 // For legacy browser support
+// };
+
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.ALLOWED_ORIGINS?.split(',') 
+    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173', 'http://127.0.0.1:3000'],
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  optionsSuccessStatus: 200 // For legacy browser support
+  optionsSuccessStatus: 200
 };
 
 app.use(express.json());
