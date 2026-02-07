@@ -48,6 +48,9 @@ const app = express();
 // };
 const corsOptions = {
   origin: function (origin, callback) {
+    console.log('Incoming request from origin:', origin);
+    console.log('ALLOWED_ORIGINS env:', process.env.ALLOWED_ORIGINS);
+    
     // Allow requests with no origin (like mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
     
@@ -56,11 +59,14 @@ const corsOptions = {
       ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
       : [];
     
+    console.log('Parsed allowed origins:', allowedOrigins);
+    
     if (allowedOrigins.includes(origin)) {
+      console.log('✓ Origin allowed:', origin);
       callback(null, true);
     } else {
-      console.log(`CORS blocked origin: ${origin}`);
-      callback(null, false);
+      console.log('✗ CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
