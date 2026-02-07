@@ -47,29 +47,32 @@ const app = express();
 //   optionsSuccessStatus: 200 // For legacy browser support
 // };
 const corsOptions = {
-  origin: true, // Allow all origins (you can customize this in production)
-  // origin: function (origin, callback) {
-  //   console.log('Incoming request from origin:', origin);
-  //   console.log('ALLOWED_ORIGINS env:', process.env.ALLOWED_ORIGINS);
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
     
-  //   // Allow requests with no origin (like mobile apps, Postman, etc.)
-  //   if (!origin) return callback(null, true);
+    let allowedOrigins = [];
     
-  //   // Get allowed origins from environment variable
-  //   const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  //     ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  //     : [];
+    // Automatically detect environment
+    if (process.env.VERCEL_ENV === 'production') {
+      // Production environment
+      allowedOrigins = process.env.ALLOWED_ORIGINS_PROD?.split(',').map(o => o.trim()) || [];
+    } else {
+      // Preview/Development - allow localhost
+      allowedOrigins = [
+        'http://localhost:3000',
+        'http://localhost:3001', 
+        'http://localhost:5173',
+        ...(process.env.ALLOWED_ORIGINS_PREVIEW?.split(',').map(o => o.trim()) || [])
+      ];
+    }
     
-  //   console.log('Parsed allowed origins:', allowedOrigins);
-    
-  //   if (allowedOrigins.includes(origin)) {
-  //     console.log('✓ Origin allowed:', origin);
-  //     callback(null, true);
-  //   } else {
-  //     console.log('✗ CORS blocked origin:', origin);
-  //     callback(new Error('Not allowed by CORS'));
-  //   }
-  // },
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log(`CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
