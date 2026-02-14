@@ -4,24 +4,27 @@ const User = require('../models/user.model');
 
 const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select('-password -__v'); // Exclude password field
-
-    const u = users.map(user => {
-      return {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt
-      };
-    });
-
-    res.status(200).json(u);
+    const { search } = req.query;
+    
+    let users;
+    if (search) {
+      // Search by name or email
+      users = await User.find({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } }
+        ]
+      });
+    } else {
+      // Get all users
+      users = await User.find({});
+    }
+    
+    res.status(200).json(users);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-}
+};
 
 const getUserById = async (req, res) => {
   try {
@@ -35,4 +38,25 @@ const getUserById = async (req, res) => {
   }
 }
 
-module.exports = { getAllUsers, getUserById};
+// create search user by email or name
+// const searchUsers = async (req, res) => {
+//   try {
+//     const { query } = req.query;
+//     if (!query) {
+//       return res.status(400).json({ message: 'Query parameter is required' });
+//     }
+
+//     const users = await User.find({
+//       $or: [
+//         { name: { $regex: query, $options: 'i' } },
+//         { email: { $regex: query, $options: 'i' } }
+//       ]
+//     }).select('-password -__v');
+
+//     res.status(200).json(users);
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// }
+
+module.exports = { getAllUsers, getUserById };
