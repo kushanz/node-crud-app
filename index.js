@@ -1,7 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
-const cors = require('cors');
 
 require('dotenv').config();
 
@@ -32,40 +31,54 @@ const allowedOrigins = new Set([
   ...envAllowedOrigins
 ]);
 
-const corsOptions = {
-  origin(origin, callback) {
-    if (!origin) {
-      callback(null, true);
-      return;
-    }
+const isOriginAllowed = (origin) => {
+  const normalizedOrigin = normalizeOrigin(origin);
 
-    const normalizedOrigin = normalizeOrigin(origin);
+  if (allowedOrigins.has(normalizedOrigin)) {
+    return true;
+  }
 
-    if (allowedOrigins.has(normalizedOrigin)) {
-      callback(null, true);
-      return;
-    }
+  if (/^http:\/\/localhost:\d+$/i.test(normalizedOrigin) || /^http:\/\/127\.0\.0\.1:\d+$/i.test(normalizedOrigin)) {
+    return true;
+  }
 
-    if (/^http:\/\/localhost:\d+$/i.test(normalizedOrigin) || /^http:\/\/127\.0\.0\.1:\d+$/i.test(normalizedOrigin)) {
-      callback(null, true);
-      return;
-    }
+  if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(normalizedOrigin)) {
+    return true;
+  }
 
-    if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(normalizedOrigin)) {
-      callback(null, true);
-      return;
-    }
-
-    console.warn(`CORS blocked for origin: ${origin}`);
-    callback(new Error(`CORS blocked for origin: ${origin}`));
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  optionsSuccessStatus: 200
+  return false;
 };
 
-app.use(cors(corsOptions));
-app.options(/.*/, cors(corsOptions));
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+
+  if (!origin) {
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(204);
+    }
+    return next();
+  }
+
+  if (!isOriginAllowed(origin)) {
+    console.warn(`CORS blocked for origin: ${origin}`);
+    return res.status(403).json({ message: `CORS blocked for origin: ${origin}` });
+  }
+
+  res.header('Access-Control-Allow-Origin', origin);
+  res.header('Vary', 'Origin');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
+  res.header(
+    'Access-Control-Allow-Headers',
+    req.headers['access-control-request-headers'] || 'Content-Type, Authorization'
+  );
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: false }));
