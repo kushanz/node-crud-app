@@ -22,10 +22,11 @@ const generateTokens = (userId, role) => {
 // Register a new user
 const register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { firstname, lastname, email, password, role } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({
-      name,
+      firstname,
+      lastname,
       email,
       password: hashedPassword,
       role,
@@ -75,7 +76,8 @@ const login = async (req, res) => {
       message: `Login successful user ${user.email}`,
       loggedUser: {
         id: user._id,
-        name: user.name,
+        firstname: user.firstname,
+        lastname: user.lastname,
         email: user.email,
         role: user.role,
         // token: accessToken
@@ -104,9 +106,14 @@ const refreshToken = async (req, res) => {
       return res.status(401).json({ message: 'User not found' });
     }
 
-    const { accessToken, refreshToken: newRefreshToken } = generateTokens(user._id, user.role);
+    // Only generate new access token, don't rotate refresh token
+    const accessToken = jwt.sign(
+      { id: user._id, role: user.role }, 
+      process.env.JWT_SECRET, 
+      { expiresIn: '15m' }
+    );
 
-    // Set new tokens
+    // Only set new access token, keep existing refresh token
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -114,18 +121,12 @@ const refreshToken = async (req, res) => {
       maxAge: 15 * 60 * 1000 // 15 minute
     });
 
-    res.cookie('refreshToken', newRefreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
-
     res.status(200).json({ 
       message: 'Token refreshed successfully',
       user: {
         id: user._id,
-        name: user.name,
+        firstname: user.firstname,
+        lastname: user.lastname,
         email: user.email,
         role: user.role,
       }

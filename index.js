@@ -1,108 +1,81 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const cookieParser = require('cookie-parser'); // Add this line
-const dotenv = require('dotenv').config();
+const cookieParser = require('cookie-parser');
 const cors = require('cors');
+
+require('dotenv').config();
+
 const app = express();
 
-// CORS configuration
-// const corsOptions = {
-//   origin: 'http://localhost:3001',
-  // origin: function (origin, callback) {
-  //   // Allow requests with no origin (like mobile apps, Postman, etc.)
-  //   if (!origin) return callback(null, true);
-    
-  //   // In development, allow all localhost origins
-  //   if (process.env.NODE_ENV !== 'production') {
-  //     const allowedOrigins = [
-  //       'http://localhost:3000',
-  //       'http://localhost:3001',
-  //       'http://localhost:5173', // Vite default
-  //       'http://localhost:8080',
-  //       'http://127.0.0.1:3000',
-  //       'http://127.0.0.1:5173',
-  //       'http://127.0.0.1:8080'
-  //     ];
-      
-  //     if (allowedOrigins.indexOf(origin) !== -1) {
-  //       return callback(null, true);
-  //     }
-  //   }
-    
-  //   // In production, only allow specific domains
-  //   const productionOrigins = process.env.ALLOWED_ORIGINS 
-  //     ? process.env.ALLOWED_ORIGINS.split(',')
-  //     : [];
-    
-  //   if (productionOrigins.indexOf(origin) !== -1) {
-  //     callback(null, true);
-  //   } else {
-  //     console.log(`CORS blocked origin: ${origin}`);
-  //     callback(new Error('Not allowed by CORS'));
-  //   }
-  // },
-//   credentials: true, // Allow cookies and authorization headers
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-//   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-//   optionsSuccessStatus: 200 // For legacy browser support
-// };
+const defaultAllowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:4200',
+  'http://localhost:5173',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001',
+  'http://127.0.0.1:4200',
+  'http://127.0.0.1:5173'
+];
+
+const envAllowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean)
+  : [];
+
+const allowedOrigins = new Set([...defaultAllowedOrigins, ...envAllowedOrigins]);
+
 const corsOptions = {
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    
-    let allowedOrigins = [];
-    
-    // Automatically detect environment
-    if (process.env.VERCEL_ENV === 'production') {
-      // Production environment
-      allowedOrigins = process.env.ALLOWED_ORIGINS_PROD?.split(',').map(o => o.trim()) || [];
-    } else {
-      // Preview/Development - allow localhost
-      allowedOrigins = [
-        'http://localhost:3000',
-        'http://localhost:3001', 
-        'http://localhost:5173',
-        ...(process.env.ALLOWED_ORIGINS_PREVIEW?.split(',').map(o => o.trim()) || [])
-      ];
-    }
-    
-    if (allowedOrigins.includes(origin)) {
+  origin(origin, callback) {
+    if (!origin) {
       callback(null, true);
-    } else {
-      console.log(`CORS blocked origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
+      return;
     }
+
+    if (allowedOrigins.has(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`CORS blocked for origin: ${origin}`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   optionsSuccessStatus: 200
 };
 
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors(corsOptions)); // Enable CORS with custom options
-const PORT = process.env.PORT || 3000;
-app.use(express.urlencoded({ extended: false })); // for parsing application/x-www-form-urlencoded
+app.use(express.urlencoded({ extended: false }));
 
-const productRoute = require('./src/routes/product.route.js')
-const authRoute = require('./src/routes/auth.route.js')
-const userRoute = require('./src/routes/user.route.js')
+const PORT = process.env.PORT || 3000;
+
+const productRoute = require('./src/routes/product.route.js');
+const authRoute = require('./src/routes/auth.route.js');
+const userRoute = require('./src/routes/user.route.js');
 
 app.get('/', (req, res) => {
   res.send('Hello World! port 3000');
-})
+});
 
-// api collecton
-app.use('/api/auth', authRoute)
-app.use('/api/products', productRoute)
-app.use('/api/users', userRoute)
-// api collection end
+app.use('/api/auth', authRoute);
+app.use('/api/products', productRoute);
+app.use('/api/users', userRoute);
 
-mongoose.connect('mongodb+srv://admin:iVYiVRUCKKksRm6A@kushandb.vwqpm.mongodb.net/Node-API?retryWrites=true&w=majority&appName=KushanDb')
-    .then(() => {
-      console.info('Connected MongoDB')
-      app.listen(PORT, () => { 
-        console.log(`Server is running on port ${PORT}`);
-      })
-    }).catch(() => console.log('Connection Failed'))
+mongoose
+  .connect(
+    'mongodb+srv://admin:iVYiVRUCKKksRm6A@kushandb.vwqpm.mongodb.net/Node-API?retryWrites=true&w=majority&appName=KushanDb'
+  )
+  .then(() => {
+    console.info('Connected MongoDB');
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  })
+  .catch(() => console.log('Connection Failed'));
