@@ -18,11 +18,19 @@ const defaultAllowedOrigins = [
   'http://127.0.0.1:5173'
 ];
 
+const normalizeOrigin = (origin) => origin.replace(/\/+$/, '').toLowerCase();
+
 const envAllowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean)
+  ? process.env.ALLOWED_ORIGINS.split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean)
+      .map(normalizeOrigin)
   : [];
 
-const allowedOrigins = new Set([...defaultAllowedOrigins, ...envAllowedOrigins]);
+const allowedOrigins = new Set([
+  ...defaultAllowedOrigins.map(normalizeOrigin),
+  ...envAllowedOrigins
+]);
 
 const corsOptions = {
   origin(origin, callback) {
@@ -31,16 +39,24 @@ const corsOptions = {
       return;
     }
 
-    if (allowedOrigins.has(origin)) {
+    const normalizedOrigin = normalizeOrigin(origin);
+
+    if (allowedOrigins.has(normalizedOrigin)) {
       callback(null, true);
       return;
     }
 
-    if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) {
+    if (/^http:\/\/localhost:\d+$/i.test(normalizedOrigin) || /^http:\/\/127\.0\.0\.1:\d+$/i.test(normalizedOrigin)) {
       callback(null, true);
       return;
     }
 
+    if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(normalizedOrigin)) {
+      callback(null, true);
+      return;
+    }
+
+    console.warn(`CORS blocked for origin: ${origin}`);
     callback(new Error(`CORS blocked for origin: ${origin}`));
   },
   credentials: true,
